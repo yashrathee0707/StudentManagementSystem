@@ -1,10 +1,9 @@
-﻿namespace StudentManagementSystem.Models
+﻿using System.Collections.Generic;
+
+namespace StudentManagementSystem.Models
 {
-    public class Project
+    public class Project : Assignment
     {
-        public int ProjectID { get; set; }
-        public string ProjectName { get; set; }
-        public int CourseID { get; set; }
-        public Course Course { get; set; }
+        public ICollection<ProjectFile> ProjectFiles { get; set; }
     }
 }

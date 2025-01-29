@@ -7,5 +7,6 @@
         public int CourseID { get; set; }
         public DateTime DueDate { get; set; }
         public Course Course { get; set; }
+        public ICollection<Submission> Submissions { get; set; } 
     }
 }
