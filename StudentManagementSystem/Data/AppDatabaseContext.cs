@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Data;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using StudentManagementSystem.Models;
 
 namespace StudentManagementSystem.Data
@@ -24,6 +26,44 @@ namespace StudentManagementSystem.Data
         public DbSet<QuizQuestion> QuizQuestions { get; set; }
         public DbSet<StudentDiscipline> StudentDisciplines { get; set; }
         public DbSet<User> Users { get; set; }
+
+        public async Task<string> RegisterUserAsync(string username, string passwordHash, string email, string role)
+        {
+            var parameters = new[]
+                    {
+                new SqlParameter("@UserName", SqlDbType.NVarChar) { Value = username },
+                new SqlParameter("@PasswordHash", SqlDbType.NVarChar) { Value = passwordHash },
+                new SqlParameter("@Email", SqlDbType.NVarChar) { Value = email },
+                new SqlParameter("@Role", SqlDbType.NVarChar) { Value = role }
+            };
+
+            try
+            {
+                // Execute the stored procedure using 'this' for the DbContext
+                var result = await this.Database.ExecuteSqlRawAsync(
+                    "EXEC dbo.sp_InsertUser @UserName, @PasswordHash, @Email, @Role",
+                    parameters);
+
+                return "User registration successful"; // Success message
+            }
+            catch (SqlException ex)
+            {
+                // Check if the error is due to duplicate username or other issues
+                if (ex.Number == 2627) // Unique constraint violation (duplicate key)
+                {
+                    return "Username already exists";
+                }
+
+                // Catch other SQL exceptions
+                return $"Error occurred: {ex.Message}";
+            }
+            catch (Exception ex)
+            {
+                // Catch any other general exceptions
+                return $"Unexpected error occurred: {ex.Message}";
+            }
+        }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

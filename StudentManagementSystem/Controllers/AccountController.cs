@@ -1,15 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+using StudentManagementSystem.Data;
 using StudentManagementSystem.Models;
 using StudentManagementSystem.ViewModels;
-using System;
-using System.Collections.Generic;
+using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using BCrypt.Net;
 
 namespace StudentManagementSystem.Controllers
 {
@@ -17,51 +16,73 @@ namespace StudentManagementSystem.Controllers
     [Route("api/[controller]")]
     public class AccountController : ControllerBase
     {
-        private static readonly List<User> Users = new List<User>
+        private readonly AppDatabaseContext _context;
+
+        public AccountController(AppDatabaseContext context)
         {
-            new User { UserName = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("password") }
-        };
+            _context = context;
+        }
 
-        private readonly string _secretKey = "0Bnx5Gfz5XmRsRZ6HzrZZ4eqRfAzD2+jJjUJevCBNkM=";
-
+        // Registration endpoint
+        // POST: /api/Account/register
         [HttpPost("register")]
-        public IActionResult Register([FromBody] RegisterViewModel model)
+        public async Task<IActionResult> Register([FromBody] RegisterViewModel model)
         {
             if (ModelState.IsValid)
             {
-                if (Users.Any(u => u.UserName == model.Username))
+                // Check if the username already exists
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.UserName == model.Username);
+
+                if (existingUser != null)
                 {
                     ModelState.AddModelError(string.Empty, "Username already exists");
                     return BadRequest(ModelState);
                 }
 
                 var hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
-                Users.Add(new User { UserName = model.Username, PasswordHash = hashedPassword });
-                return Ok("Registration successful");
+
+                var role = model.Role ?? "User";
+
+                var result = await _context.RegisterUserAsync(model.Username, hashedPassword, model.Email, role);
+
+                if (result == "User registration successful")
+                {
+                    return Ok("Registration successful");
+                }
+                else
+                {
+                    return BadRequest(result); 
+                }
             }
+
             return BadRequest(ModelState);
         }
 
+        // Login endpoint
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginViewModel model)
         {
             if (ModelState.IsValid)
             {
-                var user = Users.FirstOrDefault(u => u.UserName == model.Username);
+                var user = _context.Users.FirstOrDefault(u => u.UserName == model.Username);
                 if (user == null)
                 {
                     return BadRequest("User not found. Please register first.");
                 }
+
                 if (BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
                 {
                     var token = GenerateJwtToken(user);
                     return Ok(new { Token = token });
                 }
+
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }
             return BadRequest(ModelState);
         }
 
+        // Logout endpoint (requires authentication)
         [Authorize]
         [HttpGet("logout")]
         public IActionResult Logout()
@@ -69,16 +90,14 @@ namespace StudentManagementSystem.Controllers
             return Ok("Logout successful");
         }
 
+        // Method to generate JWT token
         private string GenerateJwtToken(User user)
         {
-            var key = Encoding.ASCII.GetBytes(_secretKey);
+            var key = Encoding.ASCII.GetBytes("0Bnx5Gfz5XmRsRZ6HzrZZ4eqRfAzD2+jJjUJevCBNkM=");
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                }),
+                Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, user.UserName) }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };

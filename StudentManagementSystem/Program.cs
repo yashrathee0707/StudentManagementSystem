@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StudentManagementSystem.Data;
 using System.Text;
 
 namespace StudentManagementSystem
@@ -13,6 +15,10 @@ namespace StudentManagementSystem
 
             // Add services to the container.
             builder.Services.AddControllers();
+
+            // Register the AppDatabaseContext with SQL Server
+            builder.Services.AddDbContext<AppDatabaseContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // Configure Swagger/OpenAPI
             builder.Services.AddEndpointsApiExplorer();
