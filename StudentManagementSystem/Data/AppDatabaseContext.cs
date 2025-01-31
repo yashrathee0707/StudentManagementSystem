@@ -27,10 +27,10 @@ namespace StudentManagementSystem.Data
         public DbSet<StudentDiscipline> StudentDisciplines { get; set; }
         public DbSet<User> Users { get; set; }
 
+        // Register User with Stored Procedure
         public async Task<string> RegisterUserAsync(string username, string passwordHash, string email, string role)
         {
-            var parameters = new[]
-                    {
+            var parameters = new[] {
                 new SqlParameter("@UserName", SqlDbType.NVarChar) { Value = username },
                 new SqlParameter("@PasswordHash", SqlDbType.NVarChar) { Value = passwordHash },
                 new SqlParameter("@Email", SqlDbType.NVarChar) { Value = email },
@@ -39,7 +39,6 @@ namespace StudentManagementSystem.Data
 
             try
             {
-                // Execute the stored procedure using 'this' for the DbContext
                 var result = await this.Database.ExecuteSqlRawAsync(
                     "EXEC dbo.sp_InsertUser @UserName, @PasswordHash, @Email, @Role",
                     parameters);
@@ -64,7 +63,7 @@ namespace StudentManagementSystem.Data
             }
         }
 
-
+        // OnModelCreating method for configuration
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -81,7 +80,7 @@ namespace StudentManagementSystem.Data
                 .HasValue<Project>("Project")
                 .HasValue<Quiz>("Quiz");
 
-            // Define composite keys
+            // Define composite keys for StudentDiscipline
             modelBuilder.Entity<StudentDiscipline>().HasKey(sd => new { sd.StudentID, sd.DisciplineID });
 
             // Define relationships and constraints
