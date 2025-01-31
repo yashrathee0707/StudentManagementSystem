@@ -28,49 +28,45 @@ namespace StudentManagementSystem.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterViewModel model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == model.Username);
+            if (existingUser != null) return BadRequest("Username already exists");
+
+            var allowedRoles = new List<string> { "Student", "Professor", "Admin" };
+            var role = allowedRoles.Contains(model.Role) ? model.Role : "Student";
+
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
+            var result = await _context.RegisterUserAsync(model.Username, hashedPassword, model.Email, role);
+
+            if (result == "User registration successful")
             {
-                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == model.Username);
-                if (existingUser != null) return BadRequest("Username already exists");
-
-                var allowedRoles = new List<string> { "Student", "Professor", "Admin" };
-                var role = allowedRoles.Contains(model.Role) ? model.Role : "Student";
-
-                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
-                var result = await _context.RegisterUserAsync(model.Username, hashedPassword, model.Email, role);
-
-                if (result == "User registration successful")
-                {
-                    if (role == "Student")
-                        await AddStudentToAllDisciplinesAsync(model.Username);
-                    return Ok("Registration successful");
-                }
-                return BadRequest(result);
+                if (role == "Student")
+                    await AddStudentToAllDisciplinesAsync(model.Username);
+                return Ok("Registration successful");
             }
-            return BadRequest(ModelState);
+            return BadRequest(result);
         }
 
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginViewModel model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var user = _context.Users
+                .Where(u => u.UserName == model.Username)
+                .Select(u => new { u.UserName, u.PasswordHash, u.Role })
+                .FirstOrDefault();
+
+            if (user == null) return BadRequest("User not found. Please register first.");
+
+            if (BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
             {
-                var user = _context.Users
-                    .Where(u => u.UserName == model.Username)
-                    .Select(u => new { u.UserName, u.PasswordHash, u.Role })
-                    .FirstOrDefault();
-
-                if (user == null) return BadRequest("User not found. Please register first.");
-
-                if (BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
-                {
-                    var token = GenerateJwtToken(new User { UserName = user.UserName, Role = user.Role });
-                    return Ok(new { Token = token });
-                }
-
-                return BadRequest("Invalid login attempt.");
+                var token = GenerateJwtToken(new User { UserName = user.UserName, Role = user.Role });
+                return Ok(new { Token = token });
             }
-            return BadRequest(ModelState);
+
+            return BadRequest("Invalid login attempt.");
         }
 
         [Authorize]
@@ -84,9 +80,7 @@ namespace StudentManagementSystem.Controllers
         {
             try
             {
-                // Retrieve the user based on the username
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
-
                 if (user == null)
                 {
                     Console.WriteLine($"User with username {username} not found.");
@@ -99,9 +93,8 @@ namespace StudentManagementSystem.Controllers
                     return;
                 }
 
-                // Retrieve all disciplines
                 var disciplines = await _context.Disciplines.ToListAsync();
-                if (disciplines.Count == 0)
+                if (!disciplines.Any())
                 {
                     Console.WriteLine("No disciplines found to assign the student.");
                     return;
@@ -111,12 +104,10 @@ namespace StudentManagementSystem.Controllers
                 {
                     try
                     {
-                        // Iterate through each discipline and assign the student
                         foreach (var discipline in disciplines)
                         {
                             Console.WriteLine($"Assigning student {user.UserName} to discipline {discipline.DisciplineName}");
 
-                            // Execute stored procedure for assigning the student to discipline
                             await _context.Database.ExecuteSqlRawAsync(
                                 "EXEC dbo.sp_AddStudentToDiscipline @UserID, @DisciplineID",
                                 new SqlParameter("@UserID", user.UserID),
@@ -126,12 +117,10 @@ namespace StudentManagementSystem.Controllers
                             Console.WriteLine($"Successfully assigned student {user.UserName} to discipline {discipline.DisciplineName}");
                         }
 
-                        // Commit the transaction if all assignments are successful
                         await transaction.CommitAsync();
                     }
                     catch (Exception ex)
                     {
-                        // Rollback in case of any failure
                         await transaction.RollbackAsync();
                         Console.WriteLine($"Error assigning student to disciplines: {ex.Message}");
                     }
@@ -145,14 +134,21 @@ namespace StudentManagementSystem.Controllers
 
         private string GenerateJwtToken(User user)
         {
-            var key = Encoding.ASCII.GetBytes("0Bnx5Gfz5XmRsRZ6HzrZZ4eqRfAzD2+jJjUJevCBNkM=");
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
             var tokenHandler = new JwtSecurityTokenHandler();
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role) 
+            };
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, user.UserName) }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
+
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }

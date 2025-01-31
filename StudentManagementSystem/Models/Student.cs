@@ -10,6 +10,9 @@
         public DateTime EnrollmentDate { get; set; }
         public ICollection<Enrollment> Enrollments { get; set; }
         public ICollection<StudentDiscipline> StudentDisciplines { get; set; }
-        public ICollection<Submission> Submissions { get; set; } 
+        public ICollection<Submission> Submissions { get; set; }
+        public int UserID { get; set; }
+
+
     }
 }

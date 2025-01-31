@@ -8,6 +8,7 @@
         public string Email { get; set; }
         public DateTime HireDate { get; set; }
         public ICollection<Course> Courses { get; set; }
-        public ICollection<Quiz> Quizzes { get; set; } 
+        public ICollection<Quiz> Quizzes { get; set; }
+        public int UserID { get; set; }
     }
 }
