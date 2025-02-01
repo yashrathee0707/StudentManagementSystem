@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentManagementSystem.Data;
 using StudentManagementSystem.Models;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Microsoft.Data.SqlClient;
 using StudentManagementSystem.ViewModels;
 
