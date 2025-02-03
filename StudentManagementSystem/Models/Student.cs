@@ -8,9 +8,13 @@
         public DateTime DateOfBirth { get; set; }
         public string Email { get; set; }
         public DateTime EnrollmentDate { get; set; }
-        public ICollection<Enrollment> Enrollments { get; set; }
-        public ICollection<StudentDiscipline> StudentDisciplines { get; set; }
+        public ICollection<Assignment> Assignments { get; set; }
         public ICollection<Submission> Submissions { get; set; }
+        public ICollection<ProjectFile> ProjectFiles { get; set; }
+        public ICollection<QuizSubmission> QuizSubmissions { get; set; }
+        public ICollection<Enrollment> Enrollments { get; set; }
+        public ICollection<StudentDiscipline> StudentDisciplines { get; set; }  // <-- Ensure this exists
+
         public int UserID { get; set; }
 
 

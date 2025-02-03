@@ -43,47 +43,126 @@ namespace StudentManagementSystem.Data
                     "EXEC dbo.sp_InsertUser @UserName, @PasswordHash, @Email, @Role",
                     parameters);
 
-                return "User registration successful"; // Success message
+                return "User registration successful";
             }
             catch (SqlException ex)
             {
-                // Check if the error is due to duplicate username or other issues
-                if (ex.Number == 2627) // Unique constraint violation (duplicate key)
+                if (ex.Number == 2627)
                 {
                     return "Username already exists";
                 }
 
-                // Catch other SQL exceptions
                 return $"Error occurred: {ex.Message}";
             }
             catch (Exception ex)
             {
-                // Catch any other general exceptions
                 return $"Unexpected error occurred: {ex.Message}";
             }
         }
 
-        // OnModelCreating method for configuration
+        // Create Student using Stored Procedure
+        public async Task<string> CreateStudentAsync(string firstName, string lastName, DateTime dateOfBirth, string email, DateTime enrollmentDate, int userId)
+        {
+            var parameters = new[] {
+                new SqlParameter("@FirstName", SqlDbType.NVarChar) { Value = firstName },
+                new SqlParameter("@LastName", SqlDbType.NVarChar) { Value = lastName },
+                new SqlParameter("@DateOfBirth", SqlDbType.DateTime) { Value = dateOfBirth },
+                new SqlParameter("@Email", SqlDbType.NVarChar) { Value = email },
+                new SqlParameter("@EnrollmentDate", SqlDbType.DateTime) { Value = enrollmentDate },
+                new SqlParameter("@UserID", SqlDbType.Int) { Value = userId }
+            };
+
+            try
+            {
+                await this.Database.ExecuteSqlRawAsync(
+                    "EXEC dbo.InsertStudent @FirstName, @LastName, @DateOfBirth, @Email, @EnrollmentDate, @UserID",
+                    parameters);
+
+                return "Student created successfully.";
+            }
+            catch (Exception ex)
+            {
+                return $"Error occurred: {ex.Message}";
+            }
+        }
+
+        // Create Professor using Stored Procedure
+        public async Task<string> CreateProfessorAsync(string firstName, string lastName, string email, DateTime hireDate, int userId)
+        {
+            var parameters = new[] {
+                new SqlParameter("@FirstName", SqlDbType.NVarChar) { Value = firstName },
+                new SqlParameter("@LastName", SqlDbType.NVarChar) { Value = lastName },
+                new SqlParameter("@Email", SqlDbType.NVarChar) { Value = email },
+                new SqlParameter("@HireDate", SqlDbType.DateTime) { Value = hireDate },
+                new SqlParameter("@UserID", SqlDbType.Int) { Value = userId }
+            };
+
+            try
+            {
+                await this.Database.ExecuteSqlRawAsync(
+                    "EXEC dbo.InsertProfessor @FirstName, @LastName, @Email, @HireDate, @UserID",
+                    parameters);
+
+                return "Professor created successfully.";
+            }
+            catch (Exception ex)
+            {
+                return $"Error occurred: {ex.Message}";
+            }
+        }
+
+        // Delete User using Stored Procedure
+        public async Task<string> DeleteUserAsync(int userId)
+        {
+            var parameters = new[] {
+                new SqlParameter("@UserID", SqlDbType.Int) { Value = userId }
+            };
+
+            try
+            {
+                await this.Database.ExecuteSqlRawAsync(
+                    "EXEC dbo.DeleteUser @UserID",
+                    parameters);
+
+                return "User deleted successfully.";
+            }
+            catch (Exception ex)
+            {
+                return $"Error occurred: {ex.Message}";
+            }
+        }
+
+        // Method to get Student Assignments
+        public async Task<List<Assignment>> GetStudentAssignmentsAsync(int studentId)
+        {
+            try
+            {
+                var assignments = await this.Set<Assignment>().FromSqlRaw(
+                    "EXEC dbo.GetStudentAssignments @StudentID = {0}", studentId).ToListAsync();
+                return assignments;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error fetching assignments: {ex.Message}");
+            }
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Map entities to tables
             modelBuilder.Entity<Student>().ToTable("Students");
             modelBuilder.Entity<Professor>().ToTable("Professors");
             modelBuilder.Entity<Course>().ToTable("Courses");
 
-            // Define inheritance hierarchy for Assignment
             modelBuilder.Entity<Assignment>()
                 .HasDiscriminator<string>("AssignmentType")
                 .HasValue<Assignment>("Assignment")
                 .HasValue<Project>("Project")
                 .HasValue<Quiz>("Quiz");
 
-            // Define composite keys for StudentDiscipline
             modelBuilder.Entity<StudentDiscipline>().HasKey(sd => new { sd.StudentID, sd.DisciplineID });
 
-            // Define relationships and constraints
             modelBuilder.Entity<Student>()
                 .HasMany(e => e.Enrollments)
                 .WithOne(e => e.Student)
@@ -114,10 +193,10 @@ namespace StudentManagementSystem.Data
                 .WithOne(qq => qq.Quiz)
                 .HasForeignKey(qq => qq.QuizID);
 
-            modelBuilder.Entity<StudentDiscipline>()
-                .HasOne(sd => sd.Student)
-                .WithMany(s => s.StudentDisciplines)
-                .HasForeignKey(sd => sd.StudentID);
+            //modelBuilder.Entity<StudentDiscipline>()
+            //    .HasOne(sd => sd.Student)
+            //    .WithMany(s => s.StudentDisciplines)
+            //    .HasForeignKey(sd => sd.StudentID);
 
             modelBuilder.Entity<StudentDiscipline>()
                 .HasOne(sd => sd.Discipline)

@@ -53,7 +53,7 @@ namespace StudentManagementSystem
             });
 
             // Configure JWT authentication
-            var key = Encoding.ASCII.GetBytes("0Bnx5Gfz5XmRsRZ6HzrZZ4eqRfAzD2+jJjUJevCBNkM="); // Use a strong secret key in production
+            var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]); // Use a strong secret key in production
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -64,11 +64,13 @@ namespace StudentManagementSystem
                 options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key)
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"]
                 };
             });
 
