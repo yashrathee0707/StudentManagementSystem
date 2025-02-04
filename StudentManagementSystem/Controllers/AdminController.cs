@@ -8,7 +8,7 @@ using StudentManagementSystem.ViewModels;
 
 namespace StudentManagementSystem.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Student,Admin")]
     [ApiController]
     [Route("api/[controller]")]
     public class AdminController : ControllerBase

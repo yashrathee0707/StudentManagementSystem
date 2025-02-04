@@ -2,6 +2,10 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using StudentManagementSystem.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System;
+using System.Diagnostics;
 
 namespace StudentManagementSystem.Data
 {
@@ -132,6 +136,67 @@ namespace StudentManagementSystem.Data
             }
         }
 
+        // Method to get Student Profile
+        public async Task<Student> GetStudentProfileAsync(int studentId)
+        {
+            return await this.Students
+                .FromSqlRaw("EXEC dbo.GetStudentProfile @StudentID",
+                            new SqlParameter("@StudentID", studentId))
+                .FirstOrDefaultAsync();
+        }
+
+        // Method to get Student Homework
+        public async Task<List<Assignment>> GetStudentHomeworkAsync(int studentId)
+        {
+            return await this.Assignments
+                .FromSqlRaw("EXEC dbo.GetStudentHomework @StudentID",
+                            new SqlParameter("@StudentID", studentId))
+                .ToListAsync();
+        }
+
+        // Method to Update Homework
+        public async Task<int> UpdateHomeworkAsync(int homeworkId, string content)
+        {
+            return await this.Database.ExecuteSqlRawAsync(
+                "EXEC dbo.UpdateHomework @HomeworkID, @Content",
+                new SqlParameter("@HomeworkID", homeworkId),
+                new SqlParameter("@Content", content)
+            );
+        }
+
+        // Method to Upload Project Files
+        public async Task<int> UploadProjectFileAsync(int projectId, int studentId, string fileName, byte[] fileContent)
+        {
+            return await this.Database.ExecuteSqlRawAsync(
+                "EXEC dbo.UploadProjectFile @ProjectID, @StudentID, @FileName, @FileContent",
+                new SqlParameter("@ProjectID", projectId),
+                new SqlParameter("@StudentID", studentId),
+                new SqlParameter("@FileName", fileName),
+                new SqlParameter("@FileContent", fileContent)
+            );
+        }
+
+        // Method to Get Quiz Questions
+        public async Task<List<QuizQuestion>> GetQuizQuestionsAsync(int quizId)
+        {
+            return await this.QuizQuestions
+                .FromSqlRaw("EXEC dbo.GetQuizQuestions @QuizID",
+                            new SqlParameter("@QuizID", quizId))
+                .ToListAsync();
+        }
+
+        // Method to Submit Quiz Answers
+        public async Task<int> SubmitQuizAnswersAsync(int quizId, int quizQuestionId, int studentId, string answer)
+        {
+            return await this.Database.ExecuteSqlRawAsync(
+                "EXEC dbo.SubmitQuizAnswers @QuizID, @QuizQuestionID, @StudentID, @Answer",
+                new SqlParameter("@QuizID", quizId),
+                new SqlParameter("@QuizQuestionID", quizQuestionId),
+                new SqlParameter("@StudentID", studentId),
+                new SqlParameter("@Answer", answer)
+            );
+        }
+
         // Method to get Student Assignments
         public async Task<List<Assignment>> GetStudentAssignmentsAsync(int studentId)
         {
@@ -192,11 +257,6 @@ namespace StudentManagementSystem.Data
                 .HasMany(q => q.QuizQuestions)
                 .WithOne(qq => qq.Quiz)
                 .HasForeignKey(qq => qq.QuizID);
-
-            //modelBuilder.Entity<StudentDiscipline>()
-            //    .HasOne(sd => sd.Student)
-            //    .WithMany(s => s.StudentDisciplines)
-            //    .HasForeignKey(sd => sd.StudentID);
 
             modelBuilder.Entity<StudentDiscipline>()
                 .HasOne(sd => sd.Discipline)
