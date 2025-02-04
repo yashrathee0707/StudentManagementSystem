@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StudentManagementSystem.Data;
-using StudentManagementSystem.Services;
 using System.Text;
 
 namespace StudentManagementSystem
@@ -20,12 +19,6 @@ namespace StudentManagementSystem
             // Register the AppDatabaseContext with SQL Server
             builder.Services.AddDbContext<AppDatabaseContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            // Add logging
-            builder.Services.AddLogging();
-
-            // Register TokenValidator
-            builder.Services.AddScoped<TokenValidator>();
 
             // Configure Swagger/OpenAPI
             builder.Services.AddEndpointsApiExplorer();
@@ -60,7 +53,7 @@ namespace StudentManagementSystem
             });
 
             // Configure JWT authentication
-            var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
+            var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]); // Use a strong secret key in production
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StudentManagementSystem.Data;
 using StudentManagementSystem.Models;
-using StudentManagementSystem.Services;
 using StudentManagementSystem.ViewModels;
 using Microsoft.Data.SqlClient;
 using System.IdentityModel.Tokens.Jwt;
@@ -19,24 +18,20 @@ namespace StudentManagementSystem.Controllers
     {
         private readonly AppDatabaseContext _context;
         private readonly IConfiguration _configuration;
-        private readonly TokenValidator _tokenValidator;
 
-        public AccountController(AppDatabaseContext context, IConfiguration configuration, TokenValidator tokenValidator)
+        public AccountController(AppDatabaseContext context, IConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
-            _tokenValidator = tokenValidator;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterViewModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserName == model.Username);
-            if (existingUser != null)
-                return BadRequest("Username already exists");
+            if (existingUser != null) return BadRequest("Username already exists");
 
             var allowedRoles = new List<string> { "Student", "Professor", "Admin" };
             var role = allowedRoles.Contains(model.Role) ? model.Role : "Student";
@@ -54,18 +49,16 @@ namespace StudentManagementSystem.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginViewModel model)
+        public IActionResult Login([FromBody] LoginViewModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var user = await _context.Users
+            var user = _context.Users
                 .Where(u => u.UserName == model.Username)
                 .Select(u => new { u.UserName, u.PasswordHash, u.Role })
-                .FirstOrDefaultAsync();
+                .FirstOrDefault();
 
-            if (user == null)
-                return BadRequest("User not found. Please register first.");
+            if (user == null) return BadRequest("User not found. Please register first.");
 
             if (BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
             {
@@ -81,17 +74,6 @@ namespace StudentManagementSystem.Controllers
         public IActionResult Logout()
         {
             return Ok("Logout successful");
-        }
-
-        [HttpGet("validate-token")]
-        public IActionResult ValidateToken(string token)
-        {
-            bool isValid = _tokenValidator.ValidateToken(token);
-            if (isValid)
-            {
-                return Ok("Token is valid.");
-            }
-            return Unauthorized("Token is invalid.");
         }
 
         private async Task AddStudentToAllDisciplinesAsync(string username)
@@ -157,16 +139,14 @@ namespace StudentManagementSystem.Controllers
             var claims = new[]
             {
                 new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.Role, user.Role) 
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(int.Parse(_configuration["Jwt:TokenExpirationInHours"])),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Audience = _configuration["Jwt:Audience"],
-                Issuer = _configuration["Jwt:Issuer"]
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
