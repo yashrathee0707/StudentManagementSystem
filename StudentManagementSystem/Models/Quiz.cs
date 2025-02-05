@@ -1,8 +1,10 @@
 ﻿namespace StudentManagementSystem.Models
 {
-    public class Quiz : Assignment
+    public class Quiz 
     {
-        public int QuizID { get; set; }  // Add QuizID if you need a separate identifier
+        public int QuizID { get; set; }
+        public string QuizName { get; set; }
+
         public ICollection<QuizQuestion> QuizQuestions { get; set; }
     }
 }

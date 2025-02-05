@@ -29,14 +29,15 @@ namespace StudentManagementSystem.Controllers
 
         // Get student profile
         [HttpGet("profile")]
-        public async Task<IActionResult> GetProfile(int studentId)
+        public async Task<IActionResult> GetStudentProfile([FromQuery] int studentId)
         {
             try
             {
-                var student = await _context.Students
-                    .FromSqlRaw("EXEC dbo.GetStudentProfile @StudentID",
-                                new SqlParameter("@StudentID", studentId))
-                    .FirstOrDefaultAsync();
+                var students = _context.Students
+                    .FromSqlRaw("EXEC GetStudentByID @StudentId = {0}", studentId)
+                    .AsEnumerable(); 
+
+                var student = students.FirstOrDefault();
 
                 if (student == null)
                 {
@@ -47,7 +48,7 @@ namespace StudentManagementSystem.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error fetching student profile: {ex.Message}");
+                Console.WriteLine($"Error fetching student profile: {ex.Message}");
                 return StatusCode(500, "Internal server error.");
             }
         }
@@ -64,6 +65,11 @@ namespace StudentManagementSystem.Controllers
                     .ToListAsync();
 
                 return Ok(homework);
+            }
+            catch (InvalidCastException ex)
+            {
+                _logger.LogError($"Invalid cast exception: {ex.Message}");
+                return StatusCode(500, "Internal server error: Invalid cast exception.");
             }
             catch (Exception ex)
             {

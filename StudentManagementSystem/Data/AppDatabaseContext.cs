@@ -5,7 +5,6 @@ using StudentManagementSystem.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
-using System.Diagnostics;
 
 namespace StudentManagementSystem.Data
 {
@@ -216,18 +215,42 @@ namespace StudentManagementSystem.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Configure Assignment entity
+            modelBuilder.Entity<Assignment>(entity =>
+            {
+                entity.HasKey(e => e.AssignmentID);
+                entity.Property(e => e.AssignmentName).IsRequired();
+                entity.Property(e => e.CourseID).IsRequired();
+                entity.Property(e => e.DueDate).IsRequired();
+                entity.Property(e => e.Title).IsRequired();
+                entity.Property(e => e.Description).IsRequired();
+                entity.Property(e => e.StudentID).IsRequired();
+                entity.Property(e => e.AssignmentType).IsRequired();
+                entity.Property(e => e.ProfessorID).IsRequired();
+            });
+
+            // Configure Quiz entity separately
+            modelBuilder.Entity<Quiz>(entity =>
+            {
+                entity.HasKey(e => e.QuizID);
+                entity.Property(e => e.QuizName).IsRequired();
+            });
+
+            // Configure Project entity separately
+            modelBuilder.Entity<Project>(entity =>
+            {
+                entity.HasKey(e => e.ProjectID);
+                entity.Property(e => e.ProjectName).IsRequired();
+            });
+
             modelBuilder.Entity<Student>().ToTable("Students");
             modelBuilder.Entity<Professor>().ToTable("Professors");
             modelBuilder.Entity<Course>().ToTable("Courses");
 
-            modelBuilder.Entity<Assignment>()
-                .HasDiscriminator<string>("AssignmentType")
-                .HasValue<Assignment>("Assignment")
-                .HasValue<Project>("Project")
-                .HasValue<Quiz>("Quiz");
-
+            // Many-to-many relationship between Student and Discipline
             modelBuilder.Entity<StudentDiscipline>().HasKey(sd => new { sd.StudentID, sd.DisciplineID });
 
+            // Relationships
             modelBuilder.Entity<Student>()
                 .HasMany(e => e.Enrollments)
                 .WithOne(e => e.Student)
