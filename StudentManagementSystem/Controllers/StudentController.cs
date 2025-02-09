@@ -31,6 +31,10 @@ namespace StudentManagementSystem.Controllers
         [HttpGet("profile")]
         public async Task<IActionResult> GetStudentProfile([FromQuery] int studentId)
         {
+            if(studentId <= 0)
+            {
+                return BadRequest("Invalid student ID");
+            }
             try
             {
                 var students = _context.Students
@@ -57,6 +61,10 @@ namespace StudentManagementSystem.Controllers
         [HttpGet("homework")]
         public async Task<IActionResult> GetHomework(int studentId)
         {
+            if(studentId <= 0)
+            {
+                return BadRequest("Invalid student ID");
+            }
             try
             {
                 var homework = await _context.Assignments
@@ -82,6 +90,10 @@ namespace StudentManagementSystem.Controllers
         [HttpPost("editHomework")]
         public async Task<IActionResult> EditHomework(int homeworkId, [FromBody] string content)
         {
+            if(homeworkId <= 0)
+            {
+                return BadRequest("Invalid homework ID");
+            }
             if (string.IsNullOrEmpty(content))
             {
                 return BadRequest("Content cannot be empty.");
@@ -111,11 +123,21 @@ namespace StudentManagementSystem.Controllers
 
         // Upload project files
         [HttpPost("uploadProjectFiles")]
-        public async Task<IActionResult> UploadProjectFiles(int projectId, int studentId, IFormFile file)
+        public async Task<IActionResult> UploadProjectFiles([FromQuery] int projectId, [FromQuery] int studentId, IFormFile file)
         {
+            if (projectId <= 0 || studentId <= 0)
+            {
+                return BadRequest("Invalid project ID or student ID.");
+            }
+
             if (file == null || file.Length == 0)
             {
                 return BadRequest("Invalid file.");
+            }
+
+            if (file.Length > 10 * 1024 * 1024) // 10 MB limit
+            {
+                return BadRequest("File size exceeds the 10 MB limit.");
             }
 
             try
@@ -152,6 +174,10 @@ namespace StudentManagementSystem.Controllers
         [HttpGet("quiz")]
         public async Task<IActionResult> GetQuiz(int quizId)
         {
+            if(quizId <= 0)
+            {
+                return BadRequest("Invalid quiz ID");
+            }
             try
             {
                 var quizQuestions = await _context.QuizQuestions
@@ -171,6 +197,11 @@ namespace StudentManagementSystem.Controllers
         [HttpPost("submitQuiz")]
         public async Task<IActionResult> SubmitQuiz(int quizId, int studentId, [FromBody] Dictionary<int, string> answers)
         {
+            if (quizId <= 0 || studentId <= 0)
+            {
+                return BadRequest("Invalid quiz ID or student ID.");
+            }
+
             if (answers == null || answers.Count == 0)
             {
                 return BadRequest("Answers cannot be empty.");
