@@ -12,9 +12,9 @@
         public string AssignmentType { get; set; }
         public int ProfessorID { get; set; }
 
-        public Course Course { get; set; }
-        public ICollection<Submission> Submissions { get; set; }
-        public Student Student { get; set; }
-        public Submission Submission { get; set; }
+        //public Course Course { get; set; }
+        //public ICollection<Submission> Submissions { get; set; }
+        //public Student Student { get; set; }
+        //public Submission Submission { get; set; }
     }
 }

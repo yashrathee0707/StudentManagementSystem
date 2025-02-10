@@ -33,7 +33,8 @@ namespace StudentManagementSystem.Data
         // Register User with Stored Procedure
         public async Task<string> RegisterUserAsync(string username, string passwordHash, string email, string role)
         {
-            var parameters = new[] {
+            var parameters = new[]
+            {
                 new SqlParameter("@UserName", SqlDbType.NVarChar) { Value = username },
                 new SqlParameter("@PasswordHash", SqlDbType.NVarChar) { Value = passwordHash },
                 new SqlParameter("@Email", SqlDbType.NVarChar) { Value = email },
@@ -66,7 +67,8 @@ namespace StudentManagementSystem.Data
         // Create Student using Stored Procedure
         public async Task<string> CreateStudentAsync(string firstName, string lastName, DateTime dateOfBirth, string email, DateTime enrollmentDate, int userId)
         {
-            var parameters = new[] {
+            var parameters = new[]
+            {
                 new SqlParameter("@FirstName", SqlDbType.NVarChar) { Value = firstName },
                 new SqlParameter("@LastName", SqlDbType.NVarChar) { Value = lastName },
                 new SqlParameter("@DateOfBirth", SqlDbType.DateTime) { Value = dateOfBirth },
@@ -92,7 +94,8 @@ namespace StudentManagementSystem.Data
         // Create Professor using Stored Procedure
         public async Task<string> CreateProfessorAsync(string firstName, string lastName, string email, DateTime hireDate, int userId)
         {
-            var parameters = new[] {
+            var parameters = new[]
+            {
                 new SqlParameter("@FirstName", SqlDbType.NVarChar) { Value = firstName },
                 new SqlParameter("@LastName", SqlDbType.NVarChar) { Value = lastName },
                 new SqlParameter("@Email", SqlDbType.NVarChar) { Value = email },
@@ -117,7 +120,8 @@ namespace StudentManagementSystem.Data
         // Delete User using Stored Procedure
         public async Task<string> DeleteUserAsync(int userId)
         {
-            var parameters = new[] {
+            var parameters = new[]
+            {
                 new SqlParameter("@UserID", SqlDbType.Int) { Value = userId }
             };
 
@@ -250,26 +254,16 @@ namespace StudentManagementSystem.Data
             // Many-to-many relationship between Student and Discipline
             modelBuilder.Entity<StudentDiscipline>().HasKey(sd => new { sd.StudentID, sd.DisciplineID });
 
-            // Relationships
-            modelBuilder.Entity<Student>()
-                .HasMany(e => e.Enrollments)
-                .WithOne(e => e.Student)
-                .HasForeignKey(e => e.StudentID);
+            //// Relationships
+            //modelBuilder.Entity<Student>()
+            //    .HasMany(e => e.Enrollments)
+            //    .WithOne(e => e.Student)
+            //    .HasForeignKey(e => e.StudentID);
 
             modelBuilder.Entity<Course>()
                 .HasMany(c => c.Enrollments)
                 .WithOne(e => e.Course)
                 .HasForeignKey(e => e.CourseID);
-
-            modelBuilder.Entity<Course>()
-                .HasMany(c => c.Assignments)
-                .WithOne(a => a.Course)
-                .HasForeignKey(a => a.CourseID);
-
-            modelBuilder.Entity<Assignment>()
-                .HasMany(a => a.Submissions)
-                .WithOne(s => s.Assignment)
-                .HasForeignKey(s => s.AssignmentID);
 
             modelBuilder.Entity<Project>()
                 .HasMany(p => p.ProjectFiles)
@@ -291,10 +285,10 @@ namespace StudentManagementSystem.Data
                 .WithOne(c => c.Professor)
                 .HasForeignKey(c => c.ProfessorID);
 
-            modelBuilder.Entity<Student>()
-                .HasMany(s => s.Submissions)
-                .WithOne(sub => sub.Student)
-                .HasForeignKey(sub => sub.StudentID);
+            //modelBuilder.Entity<Student>()
+            //    .HasMany(s => s.Submissions)
+            //    .WithOne(sub => sub.Student)
+            //    .HasForeignKey(sub => sub.StudentID);
         }
     }
 }
