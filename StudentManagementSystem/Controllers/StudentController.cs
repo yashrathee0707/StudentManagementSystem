@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 
@@ -31,7 +32,7 @@ namespace StudentManagementSystem.Controllers
         [HttpGet("profile")]
         public async Task<IActionResult> GetStudentProfile([FromQuery] int studentId)
         {
-            if(studentId <= 0)
+            if (studentId <= 0)
             {
                 return BadRequest("Invalid student ID");
             }
@@ -39,7 +40,7 @@ namespace StudentManagementSystem.Controllers
             {
                 var students = _context.Students
                     .FromSqlRaw("EXEC GetStudentByID @StudentId = {0}", studentId)
-                    .AsEnumerable(); 
+                    .AsEnumerable();
 
                 var student = students.FirstOrDefault();
 
@@ -92,9 +93,9 @@ namespace StudentManagementSystem.Controllers
                 var homework = await _context.Assignments
                     .FromSqlRaw("EXEC dbo.GetHomeworkByID @HomeworkID",
                                 new SqlParameter("@HomeworkID", id))
-                    .ToListAsync(); 
+                    .ToListAsync();
 
-                var result = homework.FirstOrDefault(); 
+                var result = homework.FirstOrDefault();
 
                 if (result == null)
                 {
@@ -126,7 +127,7 @@ namespace StudentManagementSystem.Controllers
             try
             {
                 var result = await _context.Database.ExecuteSqlRawAsync(
-                    "EXEC dbo.UpdateOrInsertAssignment @AssignmentID, @AssignmentName, @CourseID, @DueDate, @Title, @Description, @StudentID, @AssignmentType, @ProfessorID",
+                    "EXEC dbo.UpdateOrInsertAssignment @AssignmentID, @AssignmentName, @CourseID, @DueDate, @Title, @Description, @StudentID, @AssignmentType",
                     new SqlParameter("@AssignmentID", assignment.AssignmentID),
                     new SqlParameter("@AssignmentName", assignment.AssignmentName),
                     new SqlParameter("@CourseID", assignment.CourseID),
@@ -134,8 +135,7 @@ namespace StudentManagementSystem.Controllers
                     new SqlParameter("@Title", assignment.Title),
                     new SqlParameter("@Description", assignment.Description),
                     new SqlParameter("@StudentID", assignment.StudentID),
-                    new SqlParameter("@AssignmentType", assignment.AssignmentType),
-                    new SqlParameter("@ProfessorID", assignment.ProfessorID)
+                    new SqlParameter("@AssignmentType", assignment.AssignmentType)
                 );
 
                 if (result == 0)
@@ -201,26 +201,36 @@ namespace StudentManagementSystem.Controllers
             }
         }
 
-        // Get and submit quiz
+        // Get quizzes assigned to a student
         [HttpGet("quiz")]
-        public async Task<IActionResult> GetQuiz(int quizId)
+        public async Task<IActionResult> GetQuiz(int studentId)
         {
-            if(quizId <= 0)
+            if (studentId <= 0)
             {
-                return BadRequest("Invalid quiz ID");
+                return BadRequest("Invalid student ID");
             }
             try
             {
-                var quizQuestions = await _context.QuizQuestions
-                    .FromSqlRaw("EXEC dbo.GetQuizQuestions @QuizID",
-                                new SqlParameter("@QuizID", quizId))
-                    .ToListAsync();
+                var quizzes = _context.Quizzes
+                    .FromSqlRaw("EXEC dbo.GetAssignedQuizzes @StudentID",
+                                new SqlParameter("@StudentID", studentId))
+                    .AsEnumerable()
+                    .Select(q => _context.Quizzes
+                        .Include(q => q.QuizQuestions)
+                        .Include(q => q.QuizAssignments)
+                        .FirstOrDefault(x => x.QuizID == q.QuizID))
+                    .ToList();
 
-                return Ok(quizQuestions);
+                if (!quizzes.Any())
+                {
+                    return NotFound("No quizzes found for the student.");
+                }
+
+                return Ok(quizzes);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error fetching quiz questions: {ex.Message}");
+                _logger.LogError($"Error fetching quizzes: {ex.Message}");
                 return StatusCode(500, "Internal server error.");
             }
         }
@@ -271,6 +281,5 @@ namespace StudentManagementSystem.Controllers
             {
             }
         }
-
     }
 }
