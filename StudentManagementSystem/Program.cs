@@ -5,7 +5,6 @@ using Microsoft.OpenApi.Models;
 using StudentManagementSystem.Data;
 using StudentManagementSystem.Services;
 using System.Text;
-using System.Text.Json.Serialization;
 
 namespace StudentManagementSystem
 {
@@ -16,12 +15,7 @@ namespace StudentManagementSystem
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            builder.Services.AddControllers()
-                .AddJsonOptions(options =>
-                {
-                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-                    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                });
+            builder.Services.AddControllers();
 
             // Register the AppDatabaseContext with SQL Server
             builder.Services.AddDbContext<AppDatabaseContext>(options =>

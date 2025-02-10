@@ -29,7 +29,6 @@ namespace StudentManagementSystem.Data
         public DbSet<QuizQuestion> QuizQuestions { get; set; }
         public DbSet<StudentDiscipline> StudentDisciplines { get; set; }
         public DbSet<User> Users { get; set; }
-        public DbSet<QuizAssignment> QuizAssignments { get; set; }
 
         // Register User with Stored Procedure
         public async Task<string> RegisterUserAsync(string username, string passwordHash, string email, string role)
@@ -231,50 +230,21 @@ namespace StudentManagementSystem.Data
                 entity.Property(e => e.Description).IsRequired();
                 entity.Property(e => e.StudentID).IsRequired();
                 entity.Property(e => e.AssignmentType).IsRequired();
-                //entity.Property(e => e.ProfessorID).IsRequired();
+                entity.Property(e => e.ProfessorID).IsRequired();
             });
 
-            // Configure Quiz entity
+            // Configure Quiz entity separately
             modelBuilder.Entity<Quiz>(entity =>
             {
                 entity.HasKey(e => e.QuizID);
                 entity.Property(e => e.QuizName).IsRequired();
-                entity.Property(e => e.Description).IsRequired();
-                entity.Property(e => e.CourseID).IsRequired();
-                entity.Property(e => e.DueDate).IsRequired();
-                entity.HasMany(e => e.QuizQuestions)
-                      .WithOne(q => q.Quiz)
-                      .HasForeignKey(q => q.QuizID);
             });
 
-            // Configure QuizAssignment entity
-            modelBuilder.Entity<QuizAssignment>(entity =>
+            // Configure Project entity separately
+            modelBuilder.Entity<Project>(entity =>
             {
-                entity.HasKey(e => new { e.QuizID, e.StudentID });
-                entity.HasOne(e => e.Quiz)
-                      .WithMany(q => q.QuizAssignments)
-                      .HasForeignKey(e => e.QuizID);
-                entity.HasOne(e => e.Student)
-                      .WithMany(s => s.QuizAssignments)
-                      .HasForeignKey(e => e.StudentID);
-            });
-
-            // Configure QuizQuestion entity
-            modelBuilder.Entity<QuizQuestion>(entity =>
-            {
-                entity.HasKey(e => e.QuizQuestionID);
-                entity.Property(e => e.QuestionText).IsRequired();
-                entity.Property(e => e.CorrectAnswer).IsRequired();
-                entity.HasOne(e => e.Quiz)
-                      .WithMany(q => q.QuizQuestions)
-                      .HasForeignKey(e => e.QuizID);
-            });
-
-            modelBuilder.Entity<Course>(entity =>
-            {
-                entity.HasKey(e => e.CourseID);
-                entity.Property(e => e.CourseName).IsRequired();
-                //entity.Property(e => e.ProfessorID).IsRequired();  
+                entity.HasKey(e => e.ProjectID);
+                entity.Property(e => e.ProjectName).IsRequired();
             });
 
             modelBuilder.Entity<Student>().ToTable("Students");
@@ -284,11 +254,11 @@ namespace StudentManagementSystem.Data
             // Many-to-many relationship between Student and Discipline
             modelBuilder.Entity<StudentDiscipline>().HasKey(sd => new { sd.StudentID, sd.DisciplineID });
 
-            // Relationships
-            modelBuilder.Entity<Student>()
-                .HasMany(e => e.Enrollments)
-                .WithOne(e => e.Student)
-                .HasForeignKey(e => e.StudentID);
+            //// Relationships
+            //modelBuilder.Entity<Student>()
+            //    .HasMany(e => e.Enrollments)
+            //    .WithOne(e => e.Student)
+            //    .HasForeignKey(e => e.StudentID);
 
             modelBuilder.Entity<Course>()
                 .HasMany(c => c.Enrollments)
@@ -315,10 +285,10 @@ namespace StudentManagementSystem.Data
                 .WithOne(c => c.Professor)
                 .HasForeignKey(c => c.ProfessorID);
 
-            modelBuilder.Entity<Student>()
-                .HasMany(s => s.Submissions)
-                .WithOne(sub => sub.Student)
-                .HasForeignKey(sub => sub.StudentID);
+            //modelBuilder.Entity<Student>()
+            //    .HasMany(s => s.Submissions)
+            //    .WithOne(sub => sub.Student)
+            //    .HasForeignKey(sub => sub.StudentID);
         }
     }
 }
