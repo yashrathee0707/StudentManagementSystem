@@ -5,6 +5,7 @@ using StudentManagementSystem.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
+using StudentManagementSystem.ViewModels;
 
 namespace StudentManagementSystem.Data
 {
@@ -157,6 +158,35 @@ namespace StudentManagementSystem.Data
                             new SqlParameter("@StudentID", studentId))
                 .ToListAsync();
         }
+
+        public async Task<HomeworkViewModel> GetHomeworkByIdAsync(int homeworkId)
+        {
+            var result = await Task.Run(() => this.Assignments
+                .FromSqlRaw("EXEC dbo.GetHomeworkById @HomeworkID", new SqlParameter("@HomeworkID", homeworkId))
+                .AsEnumerable() // Perform the composition on the client side
+                .GroupBy(a => a.AssignmentID) // Group by a unique field
+                .Select(g => g.First()) // Select the first item in each group
+                .Select(a => new HomeworkViewModel
+                {
+                    Id = a.AssignmentID,
+                    Title = a.Title,
+                    Content = a.Description,
+                    EndDate = a.DueDate,
+                    Comment = "",
+                    Mandatory = false,
+                    Penalty = 0,
+                    AfterEndUploadDate = a.DueDate
+                })
+                .GroupBy(a => a.Content) // Group by description to ensure uniqueness
+                .Select(g => g.First()) // Select the first item in each group
+                .FirstOrDefault());
+
+            return result;
+        }
+
+
+
+
 
         // Method to Update Homework
         public async Task<int> UpdateHomeworkAsync(int homeworkId, string content)

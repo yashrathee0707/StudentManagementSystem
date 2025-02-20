@@ -84,72 +84,60 @@ namespace StudentManagementSystem.Controllers
             }
         }
 
-        // Edit student homework (GET)
-        [HttpGet("editHomework/{id}")]
-        public async Task<IActionResult> EditHomework(int id)
+        // GET: api/Student/EditHomework/{id}
+        [HttpGet("EditHomework/{id}")]
+        public async Task<IActionResult> EditHomework(string id)
         {
+            if (!int.TryParse(id, out var homeworkId))
+            {
+                return BadRequest("Invalid homework ID");
+            }
+
             try
             {
-                var homework = await _context.Assignments
-                    .FromSqlRaw("EXEC dbo.GetHomeworkByID @HomeworkID",
-                                new SqlParameter("@HomeworkID", id))
-                    .ToListAsync();
-
-                var result = homework.FirstOrDefault();
-
-                if (result == null)
+                var homework = await _context.GetHomeworkByIdAsync(homeworkId);
+                if (homework == null)
                 {
-                    throw new StudentControllerException($"Homework with ID {id} not found.");
+                    // Exception thrown if homework is not found
+                    throw new StudentControllerException("Homework not found", 404);
                 }
 
-                return Ok(result);
+                return Ok(homework);
             }
-            catch (StudentControllerException ex)
+            catch (StudentControllerException)
             {
-                return NotFound(ex.Message);
+                ModelState.AddModelError("", "An error occurred, changes were not saved.");
+                return NotFound("Homework not found.");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error retrieving homework: {ex.Message}");
+                _logger.LogError($"Error fetching homework: {ex.Message}");
                 return StatusCode(500, "Internal server error.");
             }
         }
 
-        // Insert or update assignment (POST)
-        [HttpPost("editHomework")]
-        public async Task<IActionResult> EditHomework([FromBody] Assignment assignment)
+        // POST: api/Student/EditHomework
+        [HttpPost("EditHomework")]
+        public async Task<IActionResult> EditHomework(HomeworkViewModel homework)
         {
-            if (assignment == null)
+            if (ModelState.IsValid)
             {
-                return BadRequest("Invalid assignment data.");
-            }
-
-            try
-            {
-                var result = await _context.Database.ExecuteSqlRawAsync(
-                    "EXEC dbo.UpdateOrInsertAssignment @AssignmentID, @AssignmentName, @CourseID, @DueDate, @Title, @Description, @StudentID, @AssignmentType",
-                    new SqlParameter("@AssignmentID", assignment.AssignmentID),
-                    new SqlParameter("@AssignmentName", assignment.AssignmentName),
-                    new SqlParameter("@CourseID", assignment.CourseID),
-                    new SqlParameter("@DueDate", assignment.DueDate),
-                    new SqlParameter("@Title", assignment.Title),
-                    new SqlParameter("@Description", assignment.Description),
-                    new SqlParameter("@StudentID", assignment.StudentID),
-                    new SqlParameter("@AssignmentType", assignment.AssignmentType)
-                );
-
-                if (result == 0)
+                try
                 {
-                    return NotFound("Failed to update or insert assignment.");
+                    var result = await _context.UpdateHomeworkAsync(homework.Id, homework.Content);
+                    if (result == 0)
+                    {
+                        return NotFound();
+                    }
+                    return RedirectToAction(nameof(GetHomework), new { studentId = homework.Id });
                 }
+                catch (DbUpdateException)
+                {
+                    ModelState.AddModelError("", "An error occurred, changes were not saved.");
+                }
+            }
 
-                return Ok("Assignment updated or inserted successfully.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error updating or inserting assignment: {ex.Message}");
-                return StatusCode(500, "Internal server error.");
-            }
+            return BadRequest(ModelState);
         }
 
         // Upload project files
@@ -277,7 +265,7 @@ namespace StudentManagementSystem.Controllers
 
         public class StudentControllerException : Exception
         {
-            public StudentControllerException(string message) : base(message)
+            public StudentControllerException(string message, int v) : base(message)
             {
             }
         }
