@@ -92,7 +92,7 @@ namespace StudentManagementSystem.Controllers
             {
                 return BadRequest("Invalid homework ID");
             }
-
+            
             try
             {
                 var homework = await _context.GetHomeworkByIdAsync(homeworkId);
@@ -124,7 +124,7 @@ namespace StudentManagementSystem.Controllers
             {
                 try
                 {
-                    var result = await _context.UpdateHomeworkAsync(homework.Id, homework.Content);
+                    var result = await _context.UpsertHomeworkAsync(homework);
                     if (result == 0)
                     {
                         return NotFound();

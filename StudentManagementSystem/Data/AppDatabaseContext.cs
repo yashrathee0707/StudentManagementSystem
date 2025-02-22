@@ -159,14 +159,14 @@ namespace StudentManagementSystem.Data
                 .ToListAsync();
         }
 
-        public async Task<HomeworkViewModel> GetHomeworkByIdAsync(int homeworkId)
+        public async Task<HomeworkDetailViewModel> GetHomeworkByIdAsync(int homeworkId)
         {
             var result = await Task.Run(() => this.Assignments
                 .FromSqlRaw("EXEC dbo.GetHomeworkById @HomeworkID", new SqlParameter("@HomeworkID", homeworkId))
-                .AsEnumerable() // Perform the composition on the client side
-                .GroupBy(a => a.AssignmentID) // Group by a unique field
-                .Select(g => g.First()) // Select the first item in each group
-                .Select(a => new HomeworkViewModel
+                .AsEnumerable()
+                .GroupBy(a => a.AssignmentID)
+                .Select(g => g.First())
+                .Select(a => new HomeworkDetailViewModel
                 {
                     Id = a.AssignmentID,
                     Title = a.Title,
@@ -175,27 +175,44 @@ namespace StudentManagementSystem.Data
                     Comment = "",
                     Mandatory = false,
                     Penalty = 0,
-                    AfterEndUploadDate = a.DueDate
+                    AfterEndUploadDate = a.DueDate,
+                    CourseID = a.CourseID,
+                    StudentID = a.StudentID,
+                    AssignmentType = a.AssignmentType,
+                    ProfessorID = a.ProfessorID
                 })
-                .GroupBy(a => a.Content) // Group by description to ensure uniqueness
-                .Select(g => g.First()) // Select the first item in each group
+                .GroupBy(a => a.Content)
+                .Select(g => g.First())
                 .FirstOrDefault());
 
             return result;
         }
 
 
-
-
-
         // Method to Update Homework
-        public async Task<int> UpdateHomeworkAsync(int homeworkId, string content)
+        public async Task<int> UpsertHomeworkAsync(HomeworkViewModel homework)
         {
+            var parameters = new[]
+            {
+                new SqlParameter("@HomeworkID", SqlDbType.Int) { Value = (object)homework.Id ?? DBNull.Value },
+                new SqlParameter("@AssignmentName", SqlDbType.NVarChar) { Value = homework.Title },
+                new SqlParameter("@Title", SqlDbType.NVarChar) { Value = homework.Title },
+                new SqlParameter("@Content", SqlDbType.NVarChar) { Value = homework.Content },
+                new SqlParameter("@Description", SqlDbType.NVarChar) { Value = homework.Description },
+                new SqlParameter("@EndDate", SqlDbType.DateTime) { Value = homework.EndDate },
+                new SqlParameter("@Comment", SqlDbType.NVarChar) { Value = homework.Comment },
+                new SqlParameter("@Mandatory", SqlDbType.Bit) { Value = homework.Mandatory },
+                new SqlParameter("@Penalty", SqlDbType.Int) { Value = homework.Penalty },
+                new SqlParameter("@AfterEndUploadDate", SqlDbType.DateTime) { Value = homework.AfterEndUploadDate },
+                //new SqlParameter("@CourseID", SqlDbType.Int) { Value = homework.CourseID },
+                //new SqlParameter("@StudentID", SqlDbType.Int) { Value = homework.StudentID },
+                //new SqlParameter("@AssignmentType", SqlDbType.NVarChar) { Value = homework.AssignmentType },
+                //new SqlParameter("@ProfessorID", SqlDbType.Int) { Value = homework.ProfessorID }
+            };
+
             return await this.Database.ExecuteSqlRawAsync(
-                "EXEC dbo.UpdateHomework @HomeworkID, @Content",
-                new SqlParameter("@HomeworkID", homeworkId),
-                new SqlParameter("@Content", content)
-            );
+                "EXEC dbo.UpsertHomework @HomeworkID, @AssignmentName, @Title, @Content, @Description, @EndDate, @Comment, @Mandatory, @Penalty, @AfterEndUploadDate",
+                parameters);
         }
 
         // Method to Upload Project Files
